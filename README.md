@@ -8,7 +8,7 @@ No temporary files, straight piping!
 
 - Download videos from a given URL (supports only playlists currently).
 - Stream videos directly to an S3-compatible storage bucket.
-- Check if a video (based on its title) already exists in the S3 bucket to avoid re-processing.
+- Check if a video already exists in the S3 bucket to avoid re-processing.
 - Option to re-upload if the existing file in the bucket has a different size.
 - Display progress for downloads and uploads.
 - Graceful shutdown on `SIGINT` (Ctrl+C), allowing the current video to finish processing.
@@ -53,6 +53,7 @@ node index.mjs \
 - `--ssl`: Enable SSL for S3 connection. (Defaults to `true`)
 - `--create-bucket`: Create the S3 bucket if it does not exist. (Defaults to `false`)
 - `--reupload-on-size-diff`: Re-upload the file if it already exists in the bucket but has a different size. (Defaults to `false`)
+- `--check-full-key`: Check existence using the full S3 object key (`%(title)s [%(id)s].%(ext)s`). (Defaults to `false`)
 - `--ytdlp-path <path>`: Path to the `yt-dlp` executable. (Defaults to `yt-dlp`, assuming it's in your PATH)
 - `--ytdlp-format <format>`: Passed directly to `yt-dlp`'s `-f` option. (Defaults to `bestvideo*+bestaudio/best`)
 
@@ -90,6 +91,7 @@ node index.mjs \
 ## Notes
 
 - The script uses the video title and ID as the base for the S3 object key. The final object key will be `%(title)s [%(id)s].%(ext)s`.
-- If a video with the exact S3 object key is found in the bucket, it will be skipped unless the `--reupload-on-size-diff` option is enabled and the file sizes differ, in which case it will be re-uploaded.
+- By default, if a video with the same title is found in the bucket, it will be skipped. This is done for performance but can be inaccurate if, for example, a `.srt` or `.jpg` file exists with the same base name as the video. If `--check-full-key` is enabled, the script checks for an exact match of the S3 object key (`%(title)s [%(id)s].%(ext)s`), which is more accurate but potentially slower.
+- If a matching file is found (either by title or full key, depending on the flags), it will be skipped unless the `--reupload-on-size-diff` option is enabled and the file sizes differ, in which case it will be re-uploaded.
 - Error handling is in place for `yt-dlp` execution and S3 operations. If `yt-dlp` fails or an S3 upload error occurs, the script will exit with an error code.
 - On graceful shutdown (Ctrl+C), the script will wait for the currently processing video to complete before exiting. Pressing Ctrl+C again will force immediate exit.
