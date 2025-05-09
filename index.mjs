@@ -207,6 +207,8 @@ async function main() {
     const objectInfo = bucketObjectKeys.get(s3ObjectKey)
 
     if (objectInfo) {
+      // This sometimes is a false positive and causes an unwanted reupload.
+      // yt-dlp filesize is not always accurate.
       if (options.reuploadOnSizeDiff && objectInfo.size !== totalSizeBytes) {
         console.log(`File already exists in bucket but has different size (${objectInfo.size} bytes). Re-uploading.`)
       }
