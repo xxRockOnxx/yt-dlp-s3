@@ -207,7 +207,8 @@ async function main() {
         if (key.startsWith(filename)) {
           console.log(`File with prefix "${filename}" found in bucket: "${key}". Skipping download.`)
           continue
-        } else {
+        }
+        else {
           console.log(`File with prefix "${filename}" not found in bucket. Proceeding with download.`)
         }
       }
