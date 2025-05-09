@@ -69,7 +69,7 @@ async function getPlaylistUrls(ytdlpPath, url) {
 
     return urls
   }
-  catch  (e) {
+  catch (e) {
     spinner.fail()
     throw e
   }
