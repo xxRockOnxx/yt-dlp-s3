@@ -9,6 +9,7 @@ No temporary files, straight piping!
 - Download videos from a given URL (supports only playlists currently).
 - Stream videos directly to an S3-compatible storage bucket.
 - Check if a video (based on its title) already exists in the S3 bucket to avoid re-processing.
+- Option to re-upload if the existing file in the bucket has a different size.
 - Display progress for downloads and uploads.
 - Graceful shutdown on `SIGINT` (Ctrl+C), allowing the current video to finish processing.
 - Configurable `yt-dlp` executable path.
@@ -51,6 +52,7 @@ node index.mjs \
 - `--endpoint <endpoint>`: **Required.** S3 endpoint URL (e.g., `s3.amazonaws.com` or `your.minio.server:9000`).
 - `--ssl`: Enable SSL for S3 connection. (Defaults to `true`)
 - `--create-bucket`: Create the S3 bucket if it does not exist.
+- `--reupload-on-size-diff`: Re-upload the file if it already exists in the bucket but has a different size. (Defaults to `false`)
 - `--ytdlp-path <path>`: Path to the `yt-dlp` executable. (Defaults to `yt-dlp`, assuming it's in your PATH)
 
 ### Environment Variables
@@ -86,7 +88,7 @@ node index.mjs \
 
 ## Notes
 
-- The script uses the video title (and ID) as the base for the S3 object key. The final object key will be `%(title)s [%(id)s].%(ext)s`.
-- If a video with a key starting with or including `%(title)s [%(id)s]` is found in the bucket, it will be skipped.
+- The script uses the video title and ID as the base for the S3 object key. The final object key will be `%(title)s [%(id)s].%(ext)s`.
+- If a video with the exact S3 object key is found in the bucket, it will be skipped unless the `--reupload-on-size-diff` option is enabled and the file sizes differ, in which case it will be re-uploaded.
 - Error handling is in place for `yt-dlp` execution and S3 operations. If `yt-dlp` fails or an S3 upload error occurs, the script will exit with an error code.
 - On graceful shutdown (Ctrl+C), the script will wait for the currently processing video to complete before exiting. Pressing Ctrl+C again will force immediate exit.

@@ -19,27 +19,17 @@ process.on('SIGINT', async () => {
 
 async function getBucketObjectKeys(minioClient, bucketName) {
   const spinner = ora('Fetching existing objects in bucket').start()
-  const objectKeys = new Set()
+  const objectMap = new Map()
   const stream = minioClient.listObjectsV2(bucketName, '', true)
 
   for await (const obj of stream) {
-    objectKeys.add(obj.name)
+    objectMap.set(obj.name, { size: obj.size })
   }
 
   spinner.succeed()
-  ora(`Found ${objectKeys.size} existing objects in bucket`).info()
+  ora(`Found ${objectMap.size} existing objects in bucket`).info()
 
-  return objectKeys
-}
-
-async function isObjectInBucket(bucketObjectKeys, s3ObjectKey) {
-  // Check if any key in the bucket starts with or includes the given key
-  for (const key of bucketObjectKeys) {
-    if (key.startsWith(s3ObjectKey) || key.includes(s3ObjectKey)) {
-      return true
-    }
-  }
-  return false
+  return objectMap
 }
 
 async function getPlaylistUrls(ytdlpPath, url) {
@@ -50,6 +40,8 @@ async function getPlaylistUrls(ytdlpPath, url) {
       '--restrict-filenames',
       '--print',
       'url',
+      '--print',
+      'title',
       '--print',
       'filename',
 
@@ -64,11 +56,12 @@ async function getPlaylistUrls(ytdlpPath, url) {
     const urls = []
 
     // This assumes the output is in the expected format
-    // Each video has 2 lines of output
-    for (let i = 0; i < lines.length; i += 2) {
+    // Each video has 3 lines of output
+    for (let i = 0; i < lines.length; i += 3) {
       const videoUrl = lines[i]
       const title = lines[i + 1]
-      urls.push({ title, videoUrl })
+      const filename = lines[i + 2]
+      urls.push({ videoUrl, title, filename })
     }
 
     spinner.succeed()
@@ -175,6 +168,7 @@ async function main() {
     .requiredOption('--endpoint <endpoint>', 'S3 endpoint URL')
     .option('--ssl', 'Enable SSL for S3 connection', true)
     .option('--create-bucket', 'Create bucket if it does not exist')
+    .option('--reupload-on-size-diff', 'Reupload file if the size differs from the one in the bucket', false)
     .option('--ytdlp-path <path>', 'Path to yt-dlp executable', 'yt-dlp')
     .parse(process.argv)
 
@@ -192,35 +186,39 @@ async function main() {
 
   for (let i = 0; i < urls.length; i++) {
     if (isShuttingDown) {
-      console.log('Shutdown requested. Skipping remaining videos.')
+      const skippedVideos = urls.length - i
+      console.log(`Graceful shutdown initiated. Skipping ${skippedVideos} video(s).`)
       break
     }
 
-    const { title, videoUrl } = urls[i]
+    const { title, filename, videoUrl } = urls[i]
 
     console.log('----------------------------------------')
     console.log(`Processing video ${i + 1} of ${urls.length}`)
     console.log(`URL: ${videoUrl}`)
     console.log(`Title: ${title}`)
-    console.log(`Base S3 object key: ${title}`)
-
-    const exists = await oraPromise(() => isObjectInBucket(bucketObjectKeys, title), {
-      text: `Checking if file already exists in bucket`,
-    })
-
-    if (exists) {
-      ora(`File already exists in bucket. Skipping download.`).info()
-      continue
-    }
-    else {
-      ora(`File does not exist in bucket. Proceeding with download.`).info()
-    }
 
     const metadata = await getMetadata(ytdlpPath, videoUrl)
-    const s3ObjectKey = `${title}.${metadata.extension}`
+    const s3ObjectKey = `${filename}.${metadata.extension}`
     const totalSizeBytes = metadata.filesize
 
-    console.log(`Full S3 object key: ${s3ObjectKey}`)
+    console.log(`File size: ${totalSizeBytes} bytes (${prettyBytes(totalSizeBytes)})`)
+    console.log(`S3 object key: ${s3ObjectKey}`)
+    const objectInfo = bucketObjectKeys.get(s3ObjectKey)
+
+    if (objectInfo) {
+      if (options.reuploadOnSizeDiff && objectInfo.size !== totalSizeBytes) {
+        console.log(`File already exists in bucket but has different size (${objectInfo.size} bytes). Re-uploading.`)
+      }
+      else {
+        console.log('File already exists in bucket. Skipping download.')
+        continue
+      }
+    }
+    else {
+      console.log('File does not exist in bucket. Proceeding with download.')
+    }
+
     console.log('Starting yt-dlp process')
 
     const ytdlpProcess = spawn(ytdlpPath, [
