@@ -95,3 +95,52 @@ node index.mjs \
 - If a matching file is found (either by title or full key, depending on the flags), it will be skipped unless the `--reupload-on-size-diff` option is enabled and the file sizes differ, in which case it will be re-uploaded.
 - Error handling is in place for `yt-dlp` execution and S3 operations. If `yt-dlp` fails or an S3 upload error occurs, the script will exit with an error code.
 - On graceful shutdown (Ctrl+C), the script will wait for the currently processing video to complete before exiting. Pressing Ctrl+C again will force immediate exit.
+
+## `delete-duplicate-extension.mjs`
+
+This script cleans up your S3 bucket by removing objects having the same name but different extensions.
+
+Useful after running `index.mjs` on the same playlist but different format which could result in multiple versions of the same video existing in the bcket.
+
+It removes files that don't have your chosen extension (like `.mp4`) and files without any extension.
+
+The filename sounds inaccurate tbh but naming it `delete-same-video-with-different-extension` is too long.
+
+The script will:
+1. Connect to an S3-compatible storage.
+2. List all objects (including versions) in a specified bucket.
+3. Identify objects to be deleted based on their file extension.
+4. Remove the identified objects/versions from the bucket.
+
+### Usage:
+
+```bash
+node delete-duplicate-extension.mjs \
+  --bucket <S3_BUCKET_NAME> \
+  --access-key <S3_ACCESS_KEY> \
+  --secret-key <S3_SECRET_KEY> \
+  --endpoint <S3_ENDPOINT_URL> \
+  --keep-extension <EXTENSION_TO_KEEP>
+```
+
+### Options:
+
+-   `-b, --bucket <bucket>`: **Required.** S3 bucket name.
+-   `--access-key <accessKey>`: **Required.** S3 access key. Can also be set via the `S3_ACCESS_KEY` environment variable.
+-   `--secret-key <secretKey>`: **Required.** S3 secret key. Can also be set via the `S3_SECRET_KEY` environment variable.
+-   `--endpoint <endpoint>`: **Required.** S3 endpoint URL (e.g., `s3.amazonaws.com` or `your.minio.server:9000`).
+-   `--keep-extension <keepExtension>`: **Required.** File extension to keep (e.g., `mp4`, `txt`). Do not include the leading dot.
+-   `--ssl`: Enable SSL for S3 connection. (Defaults to `true`)
+
+### Example:
+
+To delete all files in the bucket `my-video-backups` that are not `.mkv` files:
+
+```bash
+node delete-duplicate-extension.mjs \
+  --bucket "my-video-backups" \
+  --access-key "YOUR_S3_ACCESS_KEY" \
+  --secret-key "YOUR_S3_SECRET_KEY" \
+  --endpoint "s3.example.com" \
+  --keep-extension "mkv"
+```
