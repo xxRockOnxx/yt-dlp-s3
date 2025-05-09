@@ -75,13 +75,13 @@ async function getPlaylistUrls(ytdlpPath, url) {
   }
 }
 
-async function getMetadata(ytdlpPath, url) {
+async function getMetadata(ytdlpPath, format, url) {
   const spinner = ora('Fetching metadata (file size and extension)').start()
   try {
     const output = await executeCommand(ytdlpPath, [
       // When yt-dlp is used to stream, the default format is the following.
       '-f',
-      'best/bestvideo+bestaudio',
+      format,
       '-O',
       '%(ext)s,%(filesize,filesize_approx)s',
       url,
@@ -170,6 +170,7 @@ async function main() {
     .option('--create-bucket', 'Create bucket if it does not exist', false)
     .option('--reupload-on-size-diff', 'Reupload file if the size differs from the one in the bucket', false)
     .option('--ytdlp-path <path>', 'Path to yt-dlp executable', 'yt-dlp')
+    .option('--ytdlp-format <format>', 'Format to use for yt-dlp', 'bestvideo*+bestaudio/best')
     .parse(process.argv)
 
   const options = program.opts()
@@ -198,7 +199,7 @@ async function main() {
     console.log(`URL: ${videoUrl}`)
     console.log(`Title: ${title}`)
 
-    const metadata = await getMetadata(ytdlpPath, videoUrl)
+    const metadata = await getMetadata(ytdlpPath, options.ytdlpFormat, videoUrl)
     const s3ObjectKey = `${filename}.${metadata.extension}`
     const totalSizeBytes = metadata.filesize
 
@@ -224,6 +225,8 @@ async function main() {
     console.log('Starting yt-dlp process')
 
     const ytdlpProcess = spawn(ytdlpPath, [
+      '-f',
+      options.ytdlpFormat,
       '-o',
       '-',
       '--no-progress',

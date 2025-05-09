@@ -54,6 +54,7 @@ node index.mjs \
 - `--create-bucket`: Create the S3 bucket if it does not exist. (Defaults to `false`)
 - `--reupload-on-size-diff`: Re-upload the file if it already exists in the bucket but has a different size. (Defaults to `false`)
 - `--ytdlp-path <path>`: Path to the `yt-dlp` executable. (Defaults to `yt-dlp`, assuming it's in your PATH)
+- `--ytdlp-format <format>`: Passed directly to `yt-dlp`'s `-f` option. (Defaults to `bestvideo*+bestaudio/best`)
 
 ### Environment Variables
 
