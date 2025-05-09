@@ -167,7 +167,7 @@ async function main() {
     .requiredOption('--secret-key <secretKey>', 'S3 secret key', process.env.S3_SECRET_KEY)
     .requiredOption('--endpoint <endpoint>', 'S3 endpoint URL')
     .option('--ssl', 'Enable SSL for S3 connection', true)
-    .option('--create-bucket', 'Create bucket if it does not exist')
+    .option('--create-bucket', 'Create bucket if it does not exist', false)
     .option('--reupload-on-size-diff', 'Reupload file if the size differs from the one in the bucket', false)
     .option('--ytdlp-path <path>', 'Path to yt-dlp executable', 'yt-dlp')
     .parse(process.argv)

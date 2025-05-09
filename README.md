@@ -51,7 +51,7 @@ node index.mjs \
 - `--secret-key <secretKey>`: **Required.** S3 secret key. Can also be set via the `S3_SECRET_KEY` environment variable.
 - `--endpoint <endpoint>`: **Required.** S3 endpoint URL (e.g., `s3.amazonaws.com` or `your.minio.server:9000`).
 - `--ssl`: Enable SSL for S3 connection. (Defaults to `true`)
-- `--create-bucket`: Create the S3 bucket if it does not exist.
+- `--create-bucket`: Create the S3 bucket if it does not exist. (Defaults to `false`)
 - `--reupload-on-size-diff`: Re-upload the file if it already exists in the bucket but has a different size. (Defaults to `false`)
 - `--ytdlp-path <path>`: Path to the `yt-dlp` executable. (Defaults to `yt-dlp`, assuming it's in your PATH)
 
