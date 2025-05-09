@@ -171,6 +171,7 @@ async function main() {
     .option('--reupload-on-size-diff', 'Reupload file if the size differs from the one in the bucket', false)
     .option('--ytdlp-path <path>', 'Path to yt-dlp executable', 'yt-dlp')
     .option('--ytdlp-format <format>', 'Format to use for yt-dlp', 'bestvideo*+bestaudio/best')
+    .option('--check-full-key', 'Enable exact filename checking (filename.extension). Default is prefix-only checking (filename), which skips metadata fetch if a prefix match is found in S3.', false)
     .parse(process.argv)
 
   const options = program.opts()
@@ -183,6 +184,7 @@ async function main() {
     process.exit(0)
   }
 
+  ora(options.checkFullKey ? 'Exact filename checking enabled' : 'Prefix-only checking enabled').info()
   console.log()
 
   for (let i = 0; i < urls.length; i++) {
@@ -198,6 +200,19 @@ async function main() {
     console.log(`Processing video ${i + 1} of ${urls.length}`)
     console.log(`URL: ${videoUrl}`)
     console.log(`Title: ${title}`)
+
+    // Default behavior: prefix checking
+    if (!options.checkFullKey) {
+      for (const key of bucketObjectKeys.keys()) {
+        if (key.startsWith(filename)) {
+          console.log(`File with prefix "${filename}" found in bucket: "${key}". Skipping download.`)
+          continue
+        }
+        else {
+          console.log(`File with prefix "${filename}" not found in bucket. Proceeding with download.`)
+        }
+      }
+    }
 
     const metadata = await getMetadata(ytdlpPath, options.ytdlpFormat, videoUrl)
     const s3ObjectKey = `${filename}.${metadata.extension}`
